@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Database } from "../database/dataBase.js";
+import { uptime } from "node:process";
 
 
 const database = new Database();
@@ -7,7 +8,7 @@ const database = new Database();
 export const routes = [
   {
     method: "GET",
-    path: ("/tasks"),
+    path: "/tasks",
     handler: (req, res) => {
       const tasks = database.select("tasks");
       return res.end(JSON.stringify(tasks));
@@ -15,22 +16,9 @@ export const routes = [
   },
   {
     method: "POST",
-    path: ("/tasks"),
+    path: "/tasks",
     handler: (req, res) => {
-
-      const { title, description } = req.body;
-
-      if(title === null || undefined){
-        return res.writeHead(400).end(
-          JSON.stringify({message: 'Please inform a title'})
-        )
-      }
-      
-      if(description === null || undefined){
-        return res.writeHead(400).end(
-          JSON.stringify({message: 'Please inform the description'})
-        )
-      }
+      const { title, description } = req.body
 
       const task = {
         id: randomUUID(),
@@ -40,25 +28,33 @@ export const routes = [
         created_at: new Date(),
         updated_at: new Date()
       }
-      
-      if(task.completed_at === null) {
-        return res.writeHead("Essa task ainda não foi concluída")
-      }
 
-      if(task.updated_at === null) {
-        return res.writeHead("Essa task não foi atualizada")
-      }
-      
-      database.insert("tasks", task)
+      database.insert('tasks', task)
+
+      return res.writeHead(201).end()
     }
   },
   {
     method: 'PUT',
-    path: ("/tasks/id:"),
+    path: ("/tasks/:id"),
     handler: (req, res) => {
       const { id } = req.params;
       const {title, description } = req.body;
-    }
 
+      const taskUpdate = database.select("tasks", {id})
+
+      if(!taskUpdate) {
+        return res.writeHead(404).end()
+      }
+
+      database.update("tasks", id, {
+        title,
+        description,
+        updated_at: new Date()
+      })
+
+      return res.writeHead(204).end()
+
+    }
   }
 ]
