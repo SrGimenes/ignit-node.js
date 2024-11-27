@@ -1,6 +1,6 @@
-import { createServer } from 'node:http'
+import { execSync } from 'node:child_process'
 import request from 'supertest'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { app } from '../src/app'
 
 describe('Transaction routes', () => {
@@ -12,8 +12,12 @@ describe('Transaction routes', () => {
     await app.close()
   })
 
-  // biome-ignore lint/suspicious/noFocusedTests: <explanation>
-  it('user can create a new transaction', async () => {
+  beforeEach(() => {
+    execSync('npm run knex migrate:rollback --all')
+    execSync('npm run knex migrate:latest')
+  })
+
+  it('should be able to create a new transaction', async () => {
     await request(app.server)
       .post('/transactions')
       .send({
@@ -24,8 +28,7 @@ describe('Transaction routes', () => {
       .expect(201)
   })
 
-  // biome-ignore lint/suspicious/noFocusedTests: <explanation>
-  it.only('should be able to list all transactions', async () => {
+  it('should be able to list all transactions', async () => {
     const createTransactionResponse = await request(app.server)
       .post('/transactions')
       .send({
@@ -41,6 +44,7 @@ describe('Transaction routes', () => {
       .set('Cookie', cookies)
       .expect(200)
 
+    console.log(listTransactionsResponse)
     expect(listTransactionsResponse.body.transactions).toEqual([
       expect.objectContaining({
         title: 'New transaction',
@@ -48,4 +52,92 @@ describe('Transaction routes', () => {
       }),
     ])
   })
+
+  it('should be able to get a specific transaction', async () => {
+    const createTransactionResponse = await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'New transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+
+    const cookies = createTransactionResponse.get('Set-Cookie')
+
+    const listTransactionsResponse = await request(app.server)
+      .get('/transactions')
+      .set('Cookie', cookies)
+      .expect(200)
+
+    const transactionId = listTransactionsResponse.body.transactions[0].id
+
+    const getTransactionResponse = await request(app.server)
+      .get(`/transactions/${transactionId}`)
+      .set('Cookie', cookies)
+      .expect(200)
+
+    //console.log(listTransactionsResponse)
+    expect(getTransactionResponse.body.transaction).toEqual(
+      expect.objectContaining({
+        title: 'New transaction',
+        amount: 5000,
+      })
+    )
+  })
+
+  it('should be able to get the summary', async () => {
+    const createTransactionResponse = await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'New transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+
+    const cookies = createTransactionResponse.get('Set-Cookie')
+
+    await request(app.server)
+      .post('/transactions')
+      .set('Cookie', cookies)
+      .send({
+        title: 'Debit Transactoin',
+        amount: 2000,
+        type: 'debit',
+      })
+
+    const summaryResponse = await request(app.server)
+      .get('/transactions/summary')
+      .set('Cookie', cookies)
+      .expect(200)
+
+    expect(summaryResponse.body.summary).toEqual({
+      amount: 3000,
+    })
+  })
+
+  // it('should be able to get the summary', async () => {
+  //   const createTransactionResponse = await request(app.server)
+  //     .post('/transactions')
+  //     .send({
+  //       title: 'Credit transaction',
+  //       amount: 5000,
+  //       type: 'credit',
+  //     })
+  //   const cookies = createTransactionResponse.get('Set-Cookie')
+  //   await request(app.server)
+  //     .post('/transactions')
+  //     .set('Cookie', cookies)
+  //     .send({
+  //       title: 'Debit transaction',
+  //       amount: 2000,
+  //       type: 'debit',
+  //     })
+  //   const summaryResponse = await request(app.server)
+  //     .get('/transactions/summary')
+  //     .set('Cookie', cookies)
+  //     .expect(200)
+  //   expect(summaryResponse.body.summary).toEqual({
+  //     amount: 3000,
+  //   })
+  // })
 })
