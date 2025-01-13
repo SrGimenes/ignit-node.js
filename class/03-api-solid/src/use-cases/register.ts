@@ -13,7 +13,7 @@ export class RegisterUseCase {
   constructor(private usersRepository: usersRepository) {}
 
   async execute({ name, email, password }: RegisterUseCaseRequest) {
-    const password_hash = await hash(password, 6)
+    const password_hash = await hashd(password, 6)
 
     const userWithSameEmail = await this.usersRepository.findByEmail(email)
 
