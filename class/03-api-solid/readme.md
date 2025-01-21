@@ -28,3 +28,5 @@ GymPass style app
 - [x] Os dados da aplicação precisam estar persistidos em um banco PostgreSQL;
 - [ ] Todas listas de dados precisam estar paginadas com 20 itens por página;
 - [ ] O usuário deve ser identificado por um JWT(JSON Web Token)
+
+# 20-01-2025 - feriado municipal, esse dia foi voltado para descanso e laser com minha namorada. No entando sem conteúdo, apenas ressaltando o dia para não dar como perdido.
